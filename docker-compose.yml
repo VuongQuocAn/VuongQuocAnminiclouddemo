@@ -1,0 +1,45 @@
+version: "3.9"
+
+networks:
+  cloud-net:
+    driver: bridge
+
+services:
+  # ── 1. Web Frontend Server (Nginx static) ──
+  web-frontend-server:
+    build: ./web-frontend-server
+    container_name: web-frontend-server
+    ports:
+      - "18080:80"
+    networks:
+      - cloud-net
+    restart: unless-stopped
+
+  # ── 2. Application Backend Server (Flask API) ──
+  application-backend-server:
+    build: ./application-backend-server
+    container_name: application-backend-server
+    ports:
+      - "8085:8081"
+    networks:
+      - cloud-net
+    restart: unless-stopped
+
+  # ── 3. Relational Database Server (MariaDB) ──
+  relational-database-server:
+    image: mariadb:10
+    container_name: relational-database-server
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: minicloud
+    ports:
+      - "13306:3306"
+    volumes:
+      - ./relational-database-server/init:/docker-entrypoint-initdb.d
+      - db-data:/var/lib/mysql
+    networks:
+      - cloud-net
+    restart: unless-stopped
+
+volumes:
+  db-data:
