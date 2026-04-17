@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-import time, requests, os
+import time, requests, os, json
 from jose import jwt
 
 ISSUER = os.getenv("OIDC_ISSUER", "http://authentication-identity-server:8080/realms/master")
@@ -22,6 +22,12 @@ app = Flask(__name__)
 @app.get("/hello")
 def hello():
     return jsonify(message="Hello from App Server!")
+
+@app.get("/student")
+def student():
+    with open("students.json") as f:
+        data = json.load(f)
+    return jsonify(data)
 
 @app.get("/secure")
 def secure():

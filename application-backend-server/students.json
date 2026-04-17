@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "name": "Vương Quốc An",
+    "major": "Công nghệ Thông tin",
+    "gpa": 3.75
+  },
+  {
+    "id": 2,
+    "name": "Nguyễn Văn Bình",
+    "major": "Kỹ thuật Phần mềm",
+    "gpa": 3.50
+  },
+  {
+    "id": 3,
+    "name": "Trần Thị Cẩm",
+    "major": "An ninh Mạng",
+    "gpa": 3.85
+  },
+  {
+    "id": 4,
+    "name": "Lê Minh Đức",
+    "major": "Khoa học Dữ liệu",
+    "gpa": 3.60
+  },
+  {
+    "id": 5,
+    "name": "Phạm Hồng Nhung",
+    "major": "Điện toán Đám mây",
+    "gpa": 3.90
+  }
+]
