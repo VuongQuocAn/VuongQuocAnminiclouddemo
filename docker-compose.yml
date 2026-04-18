@@ -5,17 +5,27 @@ networks:
     driver: bridge
 
 services:
-  # ── 1. Web Frontend Server (Nginx static) ──
-  web-frontend-server:
+  # - 1.1 Web Frontend Server 1 (Node 1) -
+  web-frontend-server1:
     build: ./web-frontend-server
-    container_name: web-frontend-server
+    container_name: web-frontend-server1
     ports:
-      - "18080:80"
+      - "18081:80"
     networks:
       - cloud-net
     restart: unless-stopped
 
-  # ── 2. Application Backend Server (Flask API) ──
+  # - 1.2 Web Frontend Server 2 (Node 2) -
+  web-frontend-server2:
+    build: ./web-frontend-server
+    container_name: web-frontend-server2
+    ports:
+      - "18082:80"
+    networks:
+      - cloud-net
+    restart: unless-stopped
+
+  # - 2. Application Backend Server (Flask API) -
   application-backend-server:
     build: ./application-backend-server
     container_name: application-backend-server
@@ -24,8 +34,11 @@ services:
     networks:
       - cloud-net
     restart: unless-stopped
+    environment:
+      OIDC_ISSUER: "http://authentication-identity-server:8080/realms/realm_52300089"
+      OIDC_AUDIENCE: "account"
 
-  # ── 3. Relational Database Server (MariaDB) ──
+  # - 3. Relational Database Server (MariaDB) -
   relational-database-server:
     image: mariadb:10
     container_name: relational-database-server
@@ -41,7 +54,7 @@ services:
       - cloud-net
     restart: unless-stopped
 
-  # ── 4. Authentication Server (Keycloak) ──
+  # - 4. Authentication Server (Keycloak) -
   authentication-identity-server:
     image: quay.io/keycloak/keycloak:latest
     container_name: authentication-identity-server
@@ -58,7 +71,7 @@ services:
     networks:
       - cloud-net
 
-  # ── 5. Object Storage Server (MinIO) ──
+  # - 5. Object Storage Server (MinIO) -
   object-storage-server:
     image: minio/minio
     container_name: object-storage-server
@@ -75,7 +88,7 @@ services:
     networks:
       - cloud-net
 
-  # ── 6. Internal DNS Server (Bind9) ──
+  # - 6. Internal DNS Server (Bind9) -
   internal-dns-server:
     image: internetsystemsconsortium/bind9:9.18
     container_name: internal-dns-server
@@ -90,7 +103,7 @@ services:
     networks:
       - cloud-net
 
-  # ── 7. Monitoring Node Exporter Server (Prometheus) ──
+  # - 7. Monitoring Node Exporter Server (Prometheus) -
   monitoring-node-exporter-server:
     image: prom/node-exporter:latest
     container_name: monitoring-node-exporter-server
@@ -99,7 +112,7 @@ services:
     networks:
       - cloud-net
 
-  # ── 8. Monitoring Prometheus Server (Prometheus) ──
+  # - 8. Monitoring Prometheus Server (Prometheus) -
   monitoring-prometheus-server:
     image: prom/prometheus:latest
     container_name: monitoring-prometheus-server
@@ -110,7 +123,7 @@ services:
     networks:
       - cloud-net
 
-  # ── 9. Monitoring Grafana Dashboard Server (Grafana) ──
+  # - 9. Monitoring Grafana Dashboard Server (Grafana) -
   monitoring-grafana-dashboard-server:
     image: grafana/grafana:latest
     container_name: monitoring-grafana-dashboard-server
@@ -119,12 +132,13 @@ services:
     networks:
       - cloud-net
 
-  # ── 10. API Gateway Proxy Server (Nginx) ──
+  # - 10. API Gateway Proxy Server (Nginx) -
   api-gateway-proxy-server:
     image: nginx:stable
     container_name: api-gateway-proxy-server
     depends_on:
-      - web-frontend-server
+      - web-frontend-server1
+      - web-frontend-server2
       - application-backend-server
       - authentication-identity-server
     ports:

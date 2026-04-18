@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Sinh viên - MyMiniCloud</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; padding-top: 2rem; }
+        .card { box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 class="text-center mb-4 text-primary">Hệ thống Quản lý Sinh viên</h2>
+        
+        <div class="row">
+            <!-- Form Thêm/Sửa Sinh viên -->
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0" id="formTitle">Thêm sinh viên</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="studentForm">
+                            <input type="hidden" id="studentId">
+                            <div class="mb-3">
+                                <label class="form-label">Họ tên</label>
+                                <input type="text" class="form-control" id="name" required placeholder="Nhập họ tên">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">MSSV</label>
+                                <input type="text" class="form-control" id="mssv" required placeholder="Nhập mã số sinh viên">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Ngành học</label>
+                                <input type="text" class="form-control" id="major" required placeholder="Nhập ngành học">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">GPA</label>
+                                <input type="number" step="0.1" class="form-control" id="gpa" required placeholder="Nhập điểm GPA">
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100" id="submitBtn">Thêm sinh viên</button>
+                            <button type="button" class="btn btn-secondary w-100 mt-2 d-none" id="cancelBtn">Hủy</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bảng Danh sách Sinh viên -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="card-title mb-0">Danh sách Sinh viên</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>MSSV</th>
+                                        <th>Họ tên</th>
+                                        <th>Ngành học</th>
+                                        <th>GPA</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="studentTableBody">
+                                    <!-- Dữ liệu JS render ở đây -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Use relative path or /api/student. The proxy api /api/ strips the /api/ prefix.
+        const API_URL = '/api/student'; 
+
+        const studentForm = document.getElementById('studentForm');
+        const studentTableBody = document.getElementById('studentTableBody');
+        const formTitle = document.getElementById('formTitle');
+        const submitBtn = document.getElementById('submitBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+
+        // Lấy danh sách
+        async function fetchStudents() {
+            try {
+                // Thử fetch qua `/api/student` trước, nếu API gateway đang strip `/api/`
+                // Nếu error sẽ thử `/student/`
+                let res = await fetch(API_URL);
+                if (!res.ok) {
+                    res = await fetch('/student');
+                }
+                const data = await res.json();
+                renderTable(data);
+            } catch (err) {
+                console.error("Lỗi khi lấy dữ liệu: ", err);
+                // Fallback direct request in case /api/student fails
+                try {
+                     const res = await fetch('/student/');
+                     const data = await res.json();
+                     renderTable(data);
+                } catch(e) {}
+            }
+        }
+
+        function renderTable(students) {
+            studentTableBody.innerHTML = '';
+            students.forEach(student => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${student.id}</td>
+                    <td>${student.mssv}</td>
+                    <td>${student.name}</td>
+                    <td>${student.major}</td>
+                    <td>${student.gpa}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning mb-1" onclick="editStudent(${student.id}, '${student.name}', '${student.mssv}', '${student.major}', ${student.gpa})">Sửa</button>
+                        <button class="btn btn-sm btn-danger mb-1" onclick="deleteStudent(${student.id})">Xóa</button>
+                    </td>
+                `;
+                studentTableBody.appendChild(tr);
+            });
+        }
+
+        // Thêm hoặc Cập nhật
+        studentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('studentId').value;
+            const studentData = {
+                name: document.getElementById('name').value,
+                mssv: document.getElementById('mssv').value,
+                major: document.getElementById('major').value,
+                gpa: parseFloat(document.getElementById('gpa').value)
+            };
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/student/${id}` : '/api/student';
+
+            // fallback URL if necessary
+            let targetUrl = url;
+            
+            try {
+                let res = await fetch(targetUrl, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(studentData)
+                });
+                
+                if (!res.ok && id) {
+                    targetUrl = `/student/${id}`;
+                    res = await fetch(targetUrl, {
+                        method: method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(studentData)
+                    });
+                } else if (!res.ok && !id) {
+                     targetUrl = `/student`;
+                     res = await fetch(targetUrl, {
+                         method: method,
+                         headers: { 'Content-Type': 'application/json' },
+                         body: JSON.stringify(studentData)
+                     });
+                }
+
+                if (res.ok) {
+                    studentForm.reset();
+                    resetForm();
+                    fetchStudents();
+                } else {
+                    alert('Lỗi khi lưu sinh viên!');
+                }
+            } catch (err) {
+                console.error("Error setting data: ", err);
+            }
+        });
+
+        // Nạp dữ liệu vào form để Sửa
+        window.editStudent = function(id, name, mssv, major, gpa) {
+            document.getElementById('studentId').value = id;
+            document.getElementById('name').value = name;
+            document.getElementById('mssv').value = mssv;
+            document.getElementById('major').value = major;
+            document.getElementById('gpa').value = gpa;
+            
+            formTitle.textContent = 'Cập nhật sinh viên';
+            submitBtn.textContent = 'Cập nhật';
+            submitBtn.classList.replace('btn-primary', 'btn-success');
+            cancelBtn.classList.remove('d-none');
+        };
+
+        // Reset Form
+        function resetForm() {
+            document.getElementById('studentId').value = '';
+            formTitle.textContent = 'Thêm sinh viên';
+            submitBtn.textContent = 'Thêm sinh viên';
+            submitBtn.classList.replace('btn-success', 'btn-primary');
+            cancelBtn.classList.add('d-none');
+        }
+
+        cancelBtn.addEventListener('click', () => {
+            studentForm.reset();
+            resetForm();
+        });
+
+        // Xóa
+        window.deleteStudent = async function(id) {
+            if (confirm('Bạn có chắc chắn muốn xóa sinh viên này?')) {
+                let res = await fetch(`/api/student/${id}`, { method: 'DELETE' });
+                if (!res.ok) {
+                    res = await fetch(`/student/${id}`, { method: 'DELETE' });
+                }
+                if (res.ok) {
+                    fetchStudents();
+                } else {
+                    alert('Lỗi khi xóa!');
+                }
+            }
+        };
+
+        // Initialize table
+        fetchStudents();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
