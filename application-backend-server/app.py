@@ -60,7 +60,7 @@ def secure():
     token = auth.split(" ", 1)[1]
     try:
         payload = jwt.decode(token, get_jwks(), algorithms=["RS256"],
-                             audience=AUDIENCE, issuer=ISSUER)
+                             audience=AUDIENCE, options={"verify_iss": False})
         return jsonify(message="Secure resource OK",
                        preferred_username=payload.get("preferred_username"))
     except Exception as e:

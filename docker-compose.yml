@@ -12,7 +12,9 @@ services:
     ports:
       - "18081:80"
     networks:
-      - cloud-net
+      cloud-net:
+        aliases:
+          - web-frontend-server
     restart: unless-stopped
 
   # - 1.2 Web Frontend Server 2 (Node 2) -

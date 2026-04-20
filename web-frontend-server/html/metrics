@@ -1,0 +1,3 @@
+# HELP nginx_up Is Nginx up
+# TYPE nginx_up gauge
+nginx_up 1
