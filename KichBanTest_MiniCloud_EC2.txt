@@ -1,0 +1,132 @@
+===========================================================
+KỊCH BẢN KIỂM THỬ DỰ ÁN MY-MINICLOUD TRÊN MÁY CHỦ EC2 AWS
+(Dành để copy/paste lệnh test và chuẩn bị ghi hình/chụp báo cáo)
+===========================================================
+IP MÁY CHỦ EC2 (Ví dụ): 13.212.88.159
+
+=====================================================
+PHẦN A: KIỂM THỬ 9 SERVER CƠ BẢN (5 ĐIỂM)
+=====================================================
+Lưu ý: Mở SSH vào EC2 và mở Trình duyệt Web (Chrome/Edge) song song.
+
+1. Web Frontend Server
+   - Mở trình duyệt web truy cập: http://13.212.88.159/
+   -> Hiện chữ "MyMiniCloud – Home"
+   - Mở: http://13.212.88.159/blog/
+   -> Hiện chữ "MyMiniCloud – Blog"
+
+2. Application Backend Server
+   - Kiểm tra API Hello qua trình duyệt proxy chung:
+   - Mở: http://13.212.88.159:8085/hello
+   (Hoặc nếu muốn test port 8085 trực tiếp bỏ qua Proxy: http://13.212.88.159:8085/hello)
+   -> Hiện JSON: {"message":"Hello from App Server!"}
+   - Curl qua EC2 Terminal: 
+   curl http://localhost:8085/hello
+
+3. Relational Database Server (MariaDB)
+   - Chạy lệnh này trên Terminal SSH EC2:
+   sudo docker exec -it relational-database-server mysql -uroot -prootpass -e "USE minicloud; SHOW TABLES; SELECT * FROM notes;"
+   -> Hiện bảng notes và có dòng "Hello from MariaDB!"
+
+4. Authentication Identity Server (Keycloak)
+   - Mở trình duyệt web truy cập trực tiếp: http://13.212.88.159:8081/
+   - Login admin / admin 
+   -> Vào được giao diện Master Dashboard (Tạo thành công user test sv01).
+
+5. Object Storage Server (MinIO)
+   - Mở trình duyệt bằng cổng Admin: http://13.212.88.159:9001/
+   - Login minioadmin / minioadmin
+   -> Tạo thành công 1 bucket tên "demo" và upload file HTML lên.
+
+6. Internal DNS Server (Bind9)
+   - Chạy lệnh này trên Terminal SSH EC2 để hỏi DNS:
+   dig @127.0.0.1 -p 1053 web-frontend-server.cloud.local +short
+   -> Phải trả về dòng IP 10.10.10.10
+
+7. Monitoring (Prometheus)
+   - Mở trình duyệt: http://13.212.88.159:9090
+   - truy cập targets
+   -> Kiểm tra mục job="node" (Node Exporter) thấy nút xanh (UP)
+   - truy vấn :  node_cpu_seconds_total
+
+8. Logging/Visualization (Grafana)
+   - Mở trình duyệt: http://13.212.88.159:3000/
+   - Đăng nhập admin/admin
+   -> Vào cấu hình Datasource add thành công Prometheus URL là http://monitoring-prometheus-server:9090
+
+9. API Gateway Proxy 
+   - Trên Terminal EC2 chạy:
+   curl -I http://localhost/
+   curl -s http://localhost/api/hello
+   curl -I http://localhost/auth/
+   -> Trả về đúng mã 200 cho web tĩnh, JSON cho api, và 302 Redirection cho Auth.
+   
+   - Lệnh Ping Check Network Nội Bộ (Chụp hình chứng minh mạng thông qua Terminal EC2):
+   sudo docker exec -it application-backend-server ping -c 3 web-frontend-server1
+   sudo docker exec -it application-backend-server ping -c 3 relational-database-server
+   sudo docker exec -it application-backend-server ping -c 3 authentication-identity-server
+   sudo docker exec -it application-backend-server ping -c 3 object-storage-server
+   sudo docker exec -it application-backend-server ping -c 3 internal-dns-server
+   sudo docker exec -it application-backend-server ping -c 3 monitoring-prometheus-server
+   sudo docker exec -it application-backend-server ping -c 3 api-gateway-proxy-server
+
+
+=====================================================
+PHẦN B: KIỂM THỬ 10 YÊU CẦU MỞ RỘNG (10 ĐIỂM)
+=====================================================
+
+Yêu cầu 1: (Mở rộng Web Frontend - 3 Bài Blog)
+   - Trình duyệt: http://13.212.88.159/blog/blog1.html
+   - Trình duyệt: http://13.212.88.159/blog/blog2.html
+   - Trình duyệt: http://13.212.88.159/blog/blog3.html
+   -> Xem qua 3 bài thấy ảnh và content, click qua lại được trang chủ.
+
+Yêu cầu 2: (Mở rộng Backend - Đọc danh sách Sinh Viên JSON)
+   - Trình duyệt (hoặc Postman): http://13.212.88.159/api/student
+   -> Trả về danh sách JSON của 5 sinh viên lấy từ students.json
+
+   - Mở trang quản lý:   http://13.212.88.159/student/
+
+Yêu cầu 3: (Mở rộng DB - Database Sinh viên Mới)
+   - Chạy truy vấn SQL sau trên Terminal EC2:
+   sudo docker exec -it relational-database-server mysql -uroot -prootpass -e "USE studentdb; SELECT * FROM students;"
+   -> Màn hình hiển thị Output bảng 3 sinh viên Vương Quốc An, ...
+
+Yêu cầu 4: (Mở rộng Keycloak - Realm & Users)
+   - Trình duyệt đăng nhập Keycloak: http://13.212.88.159:8081/
+   - Mũi tên góc trái bấm "Vào Realm sinh viên (vidu: realm_VuongQuocAn)"
+   - Trỏ danh sách User -> Hiện đang có user sv01, sv02
+   - Trỏ vào menu "Clients" -> Thấy "flask-app" (Access Type public)
+
+Yêu cầu 5: (Mở rộng MinIO - Avatar & Reports)
+   - Trình duyệt MinIO Server: http://13.212.88.159:9001/
+   -> Mở "Buckets" -> Kiểm tra bucket "profile-pics" có file Avatar.
+   -> Kiểm tra bucket "documents" có file báo cáo PDF.
+
+Yêu cầu 6: (Mở rộng DNS Server)
+   - Chạy lệnh test phân giải miền trên Terminal EC2:
+   dig @127.0.0.1 -p 1053 app-backend.cloud.local +short
+   dig @127.0.0.1 -p 1053 minio.cloud.local +short
+   dig @127.0.0.1 -p 1053 keycloak.cloud.local +short
+   -> Kiểm tra in ra đúng lớp IP 10.10.10.x của mỗi server
+
+Yêu cầu 7: (Mở rộng Monitoring Prometheus - Add target web proxy)
+   - Trình duyệt: http://13.212.88.159:9090/targets
+   -> Kéo xuống job="web" thấy "web-frontend-server1" và "web-frontend-server2" hiện trạng thái UP (Màu Xanh).
+
+Yêu cầu 8: (Mở rộng Grafana - Custom Dashboard)
+   - Trình duyệt: http://13.212.88.159:3000/
+   - Mở menu Dashboards -> "System Health of Vương Quốc An"
+   -> Hiện ra 3 biểu đồ: CPU, Memory, Network nhấp nháy dữ liệu thật.
+
+Yêu cầu 9: (Mở rộng Nginx Proxy - Route Gateway)
+   - Trình duyệt truy cập Proxy mới: http://13.212.88.159/student/
+   -> Cảnh báo: Lệnh này khác với câu 2. Câu NÀY CHỈ CÓ `/student/` LÀ TRẢ RA JSON, thay vì `/api/student/`
+
+Yêu cầu 10: (Khó Nhất - Mở rộng Load Balancer Round Robin)
+   - Cách kiểm thử (Hiển nhiên bằng mắt thông qua LOGS):
+   Bật lệnh này trên Terminal EC2 để theo dõi log Nginx của cả 2 server web theo thời gian thực:
+   sudo docker compose logs -f web-frontend-server1 web-frontend-server2
+   - Sau đó: Bật điện thoại hoặc máy tính, F5 trang chủ (http://13.212.88.159) LÊN TỤC chục lần.
+   -> Nhìn vào cửa sổ Log ở Terminal, bạn sẽ thấy Nginx tự động đẩy Request đan xen luân phiên: Lượt 1 vào màn hình web-frontend-server1, lượt 2 tự động nhảy qua web-frontend-server2.
+========================= HOÀN THÀNH =========================
