@@ -2,7 +2,17 @@
 KỊCH BẢN KIỂM THỬ DỰ ÁN MY-MINICLOUD TRÊN MÁY CHỦ EC2 AWS
 (Dành để copy/paste lệnh test và chuẩn bị ghi hình/chụp báo cáo)
 ===========================================================
-IP MÁY CHỦ EC2 (Ví dụ): 13.212.88.159
+IP MÁY CHỦ EC2: 13.212.88.159
+
+=====================================================
+PHẦN 0: KẾT NỐI VÀO MÁY CHỦ EC2 (LÀM ĐẦU TIÊN)
+=====================================================
+(Tại máy tính của bạn, mở CMD/Powershell chỉ đường dẫn gốc vào thư mục CK đang chứa file minicloud-key.pem. Sau đó gán lệnh dưới để login thẳng vào EC2):
+
+ssh -i "minicloud-key.pem" ubuntu@13.212.88.159
+
+(Sau khi đăng nhập thành công vào EC2, bạn gõ lệnh dưới để chui vào trong kho code dự án của bạn rồi mới bắt đầu test):
+cd VuongQuocAnminiclouddemo
 
 =====================================================
 PHẦN A: KIỂM THỬ 9 SERVER CƠ BẢN (5 ĐIỂM)

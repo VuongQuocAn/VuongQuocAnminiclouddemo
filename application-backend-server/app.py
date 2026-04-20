@@ -1,5 +1,5 @@
-from flask import Flask, jsonify, request
-import time, requests, os, json
+from flask import Flask, jsonify, request, render_template_string
+import time, requests, os, json, pymysql
 from jose import jwt
 
 ISSUER = os.getenv("OIDC_ISSUER", "http://authentication-identity-server:8080/realms/master")
@@ -121,6 +121,113 @@ def delete_student(student_id):
 
     save_students(new_list)
     return jsonify(message=f"Đã xóa sinh viên ID {student_id}"), 200
+
+# ─── Database View Route ──────────────────────────────────────────────────────
+@app.get("/students-db")
+def view_students_db():
+    try:
+        conn = pymysql.connect(
+            host='relational-database-server',
+            user='root',
+            password='rootpass',
+            database='studentdb',
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM students")
+            records = cursor.fetchall()
+        conn.close()
+    except Exception as e:
+        records = []
+        error_msg = str(e)
+        return f"<h3>Database Connection Error: {error_msg}</h3>"
+
+    html_template = """
+    <!DOCTYPE html>
+    <html lang="vi">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Danh sách sinh viên (MariaDB)</title>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+        <style>
+            body {
+                background-color: #f2f4f6;
+                font-family: 'Roboto', sans-serif;
+                margin: 0;
+                padding: 40px 20px;
+            }
+            .container {
+                max-width: 900px;
+                margin: 0 auto;
+                background: #ffffff;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+                padding: 30px;
+            }
+            h2 {
+                color: #00994d;
+                font-size: 24px;
+                font-weight: 700;
+                margin-top: 0;
+                margin-bottom: 25px;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            th {
+                background-color: #00a651;
+                color: white;
+                text-align: left;
+                padding: 16px;
+                font-weight: 500;
+            }
+            th:first-child { border-top-left-radius: 6px; border-bottom-left-radius: 6px; }
+            th:last-child { border-top-right-radius: 6px; border-bottom-right-radius: 6px; }
+            td {
+                padding: 16px;
+                border-bottom: 1px solid #edf2f7;
+                color: #333;
+            }
+            tr:last-child td {
+                border-bottom: none;
+            }
+            tr:hover td {
+                background-color: #f9fafb;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>Danh sách sinh viên (MariaDB)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Student ID</th>
+                        <th>Fullname</th>
+                        <th>DOB</th>
+                        <th>Major</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students %}
+                    <tr>
+                        <td>{{ s.id }}</td>
+                        <td>{{ s.student_id }}</td>
+                        <td>{{ s.fullname }}</td>
+                        <td>{{ s.dob }}</td>
+                        <td>{{ s.major }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </body>
+    </html>
+    """
+    return render_template_string(html_template, students=records)
 
 
 if __name__ == "__main__":
